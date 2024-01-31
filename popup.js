@@ -3,13 +3,19 @@ document.addEventListener("DOMContentLoaded", function () {
   const saveButton = document.getElementById("saveButton");
   const itemList = document.getElementById("itemList");
   const itemPreview = document.getElementById("itemPreview");
+  /* 
+    Challenge:
+      * Find the code that generates the preview text
+        and update it to remove "Item: "
+      * Clear the item preview after the user clicks "Save Item"
+  */
 
-  // Update the item preview based on the current tab's title
+  // Display the item preview based on the current tab's title
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     const tabTitle = tabs[0].title;
     const truncatedTitle =
       tabTitle.length > 50 ? tabTitle.substring(0, 50) + "..." : tabTitle;
-    itemPreview.textContent = `Item: ${truncatedTitle}`;
+    itemPreview.textContent = `${truncatedTitle}`;
   });
 
   // Save the selected item to the shopping list
@@ -20,6 +26,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const tabTitle = tabs[0].title;
       const truncatedTitle =
         tabTitle.length > 50 ? tabTitle.substring(0, 50) + "..." : tabTitle;
+      itemPreview.textContent = ``;
 
       // Save the item to storage
       chrome.storage.sync.get("savedItems", function (data) {
@@ -32,9 +39,7 @@ document.addEventListener("DOMContentLoaded", function () {
         chrome.storage.sync.set({ savedItems });
 
         // Update the shopping list
-        const listItem = document.createElement("li");
-        listItem.innerHTML = `<a href="${url}" target="_blank">${truncatedTitle} (${selectedCategory})</a>`;
-        itemList.appendChild(listItem);
+        updateShoppingList(savedItems);
       });
     });
   });
@@ -42,10 +47,67 @@ document.addEventListener("DOMContentLoaded", function () {
   // Load and display saved items from storage
   chrome.storage.sync.get("savedItems", function (data) {
     const savedItems = data.savedItems || [];
-    savedItems.forEach((item) => {
-      const listItem = document.createElement("li");
-      listItem.innerHTML = `<a href="${item.url}" target="_blank">${item.title} (${item.category})</a>`;
-      itemList.appendChild(listItem);
-    });
+    updateShoppingList(savedItems);
   });
+
+  // Function to update the shopping list UI
+  function updateShoppingList(savedItems) {
+    const itemsByCategory = {};
+
+    savedItems.forEach((item) => {
+      if (!itemsByCategory[item.category]) {
+        itemsByCategory[item.category] = [];
+      }
+      itemsByCategory[item.category].push(item);
+    });
+
+    itemList.innerHTML = ""; // Clear existing content
+
+    // Create separate lists for each category
+    for (const category in itemsByCategory) {
+      const categoryHeader = document.createElement("h2");
+      categoryHeader.textContent = category;
+      itemList.appendChild(categoryHeader);
+
+      const categoryList = document.createElement("ul");
+      categoryList.className = "category-list";
+
+      itemsByCategory[category].forEach((item) => {
+        const listItem = document.createElement("li");
+        listItem.innerHTML = `
+          <div class="item-container">
+            <div class="item-info">
+              <a href="${item.url}" target="_blank">${item.title}</a>
+            </div>
+            <button class="deleteButton" data-url="${item.url}">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>`;
+        categoryList.appendChild(listItem);
+      });
+
+      itemList.appendChild(categoryList);
+    }
+
+    // Attach event listeners to delete buttons
+    const deleteButtons = document.querySelectorAll(".deleteButton");
+    deleteButtons.forEach((button) => {
+      button.addEventListener("click", function () {
+        const urlToDelete = button.getAttribute("data-url");
+        deleteItem(urlToDelete);
+        button.parentElement.parentElement.remove(); // Remove the item from the UI
+      });
+    });
+  }
+
+  // Function to delete an item from the savedItems array in storage
+  function deleteItem(urlToDelete) {
+    chrome.storage.sync.get("savedItems", function (data) {
+      const savedItems = data.savedItems || [];
+      const updatedItems = savedItems.filter(
+        (item) => item.url !== urlToDelete
+      );
+      chrome.storage.sync.set({ savedItems: updatedItems });
+    });
+  }
 });
