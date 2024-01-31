@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>SnapStash</title>
+    <link rel="stylesheet" type="text/css" href="popup.css">
+</head>
+<!-- 
+    Challenge: Set the default <select> option to 
+    "Select a category".
+  -->
+
+<body>
+    <h1>SnapStash</h1>
+    <label for="category">Select Category:</label>
+    <select id="category">
+        <option value="" disabled selected>Select a category</option>
+        <option value="Books">Books</option>
+        <option value="Clothes">Clothes</option>
+        <option value="Shoes">Shoes</option>
+        <option value="Electronics">Electronics</option>
+        <option value="Pets">Pets</option>
+        <option value="Health">Health</option>
+    </select>
+    <button id="saveButton">Save Item</button>
+    <ul id="itemList"></ul>
+    <script src="popup.js"></script>
+</body>
+
+</html>
